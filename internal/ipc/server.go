@@ -63,17 +63,54 @@ func (s *Server) handleConnection(conn net.Conn) {
 	defer conn.Close()
 
 	scanner := bufio.NewScanner(conn)
+	client := NewClient(conn)
 
 	for scanner.Scan() {
 		line := scanner.Bytes()
 
 		var req Request
 		if err := json.Unmarshal(line, &req); err != nil {
-			log.Printf("Invalid JSON received: %v", err)
+			client.Send(Response{
+				JSONRPC: "2.0",
+				Error: &Error{
+					Code:    -32700,
+					Message: "Parse error",
+				},
+			})
 
 			continue
 		}
 
-		log.Printf("Received message with ID: %s and method: %s with JSONRPC: %v and params: %v", req.ID, req.Method, req.JSONRPC, req.Params)
+		if req.JSONRPC != "2.0" {
+			client.Send(Response{
+				JSONRPC: "2.0",
+				Error: &Error{
+					Code:    -32600,
+					Message: "Invalid request: Expected `jsonrpc` version 2.0",
+				},
+			})
+
+			continue
+		}
+
+		if req.Method == "" {
+			client.Send(Response{
+				JSONRPC: "2.0",
+				ID: req.ID,
+				Error: &Error{
+					Code:    -32600,
+					Message: "Invalid request: Missing `method`",
+				},
+			})
+
+			continue
+		}
+
+		// echo
+		client.Send(Response{
+			JSONRPC: "2.0",
+			ID: req.ID,
+			Result: req,
+		})
 	}
 }
