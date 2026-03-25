@@ -33,3 +33,6 @@ go.work.sum
 
 # direnv stuff
 .direnv
+
+# project binaries
+bin/*
