@@ -1,10 +1,12 @@
 package main
 
 import (
+	"fmt"
 	"log"
 	"os"
 	"path/filepath"
 
+	"github.com/redhotvengeance/promptd/internal/config"
 	"github.com/redhotvengeance/promptd/internal/ipc"
 )
 
@@ -34,8 +36,15 @@ func main() {
 		log.Fatalf("Could not create socket directory at %s: %v", appDir, err)
 	}
 
-	server := ipc.NewServer(filepath.Join(appDir, socketName))
+	config, err := config.LoadConfig()
+	if err != nil {
+		fmt.Fprintln(os.Stderr, err)
+		os.Exit(1)
+	}
 
+	fmt.Printf("config: %v", config)
+
+	server := ipc.NewServer(filepath.Join(appDir, socketName))
 	if err := server.Start(); err != nil {
 		log.Fatalf("Server crashed: %v", err)
 	}
