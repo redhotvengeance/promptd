@@ -8,6 +8,7 @@ import (
 
 	"github.com/redhotvengeance/promptd/internal/config"
 	"github.com/redhotvengeance/promptd/internal/ipc"
+	"github.com/redhotvengeance/promptd/internal/llm"
 )
 
 const (
@@ -42,7 +43,7 @@ func main() {
 		os.Exit(1)
 	}
 
-	fmt.Printf("config: %v", config)
+	llm.NewManager(&config)
 
 	server := ipc.NewServer(filepath.Join(appDir, socketName))
 	if err := server.Start(); err != nil {
