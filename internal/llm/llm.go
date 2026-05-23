@@ -38,7 +38,9 @@ func NewManager(config *promptd.Config) *Manager {
 func NewProvider(config *promptd.Provider) Provider {
 	var provider Provider
 
-	// create clients by scheme here
+	if config.Scheme == "openai" {
+		provider = newOpenAIClient(config.Endpoint, config.Key)
+	}
 
 	return provider
 }
