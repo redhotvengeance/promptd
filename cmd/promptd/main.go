@@ -7,7 +7,8 @@ import (
 	"path/filepath"
 
 	"github.com/redhotvengeance/promptd/internal/config"
-	"github.com/redhotvengeance/promptd/internal/ipc"
+	"github.com/redhotvengeance/promptd/internal/ipc/router"
+	"github.com/redhotvengeance/promptd/internal/ipc/server"
 	"github.com/redhotvengeance/promptd/internal/llm"
 )
 
@@ -45,7 +46,9 @@ func main() {
 
 	llm.NewManager(&config)
 
-	server := ipc.NewServer(filepath.Join(appDir, socketName))
+	router := router.NewRouter()
+
+	server := ipc.NewServer(filepath.Join(appDir, socketName), router.Handle)
 	if err := server.Start(); err != nil {
 		log.Fatalf("Server crashed: %v", err)
 	}

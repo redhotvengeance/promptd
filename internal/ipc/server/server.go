@@ -11,12 +11,18 @@ import (
 	"syscall"
 )
 
+type Handler func(req Request, client *Client)
+
 type Server struct {
 	socketPath string
+	handler    Handler
 }
 
-func NewServer(path string) *Server {
-	return &Server{socketPath: path}
+func NewServer(path string, handler Handler) *Server {
+	return &Server{
+		socketPath: path,
+		handler: handler,
+	}
 }
 
 func (s *Server) Start() error {
@@ -106,11 +112,6 @@ func (s *Server) handleConnection(conn net.Conn) {
 			continue
 		}
 
-		// echo
-		client.Send(Response{
-			JSONRPC: "2.0",
-			ID: req.ID,
-			Result: req,
-		})
+		go s.handler(req, client)
 	}
 }
