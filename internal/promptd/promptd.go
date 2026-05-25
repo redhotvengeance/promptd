@@ -15,7 +15,9 @@ type Config struct {
 	Providers map[string]Provider
 }
 
-type Datastore interface {}
+type Datastore interface {
+	Threads() ThreadService
+}
 
 type Defaults struct {
 	Chat  string
