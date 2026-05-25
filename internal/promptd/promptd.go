@@ -1,7 +1,5 @@
 package promptd
 
-import "time"
-
 type Role string
 
 const (
@@ -16,6 +14,7 @@ type Config struct {
 }
 
 type Datastore interface {
+	Messages() MessageService
 	Threads() ThreadService
 }
 
@@ -30,14 +29,6 @@ type Provider struct {
 	Scheme   string
 	Endpoint string
 	Key      string
-}
-
-type Message struct {
-	ID        string
-	ThreadID  string
-	Role      Role
-	Content   string
-	CreatedAt time.Time
 }
 
 type AgentResponse struct {

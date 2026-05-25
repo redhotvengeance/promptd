@@ -12,6 +12,7 @@ type Datastore struct {
 	DB      *sql.DB
 	Queries *queries.Queries
 
+	messageService promptd.MessageService
 	threadService promptd.ThreadService
 }
 
@@ -25,9 +26,14 @@ func (d *Datastore) Open() error {
 	d.DB = libsql
 	d.Queries = queries.New(libsql)
 
+	d.messageService = NewMessageService(d.Queries)
 	d.threadService = NewThreadService(d.Queries)
 
 	return err
+}
+
+func (d *Datastore) Messages() promptd.MessageService {
+	return d.messageService
 }
 
 func (d *Datastore) Threads() promptd.ThreadService {
