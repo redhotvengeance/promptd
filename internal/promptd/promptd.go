@@ -1,5 +1,7 @@
 package promptd
 
+import "context"
+
 type Role string
 
 const (
@@ -43,7 +45,21 @@ type ToolCall struct {
 	Args string
 }
 
+type JITContext struct {
+	ActiveFilePath    string
+	ActiveFileContent string
+	CursorLine        int
+	OpenBuffers       []string
+}
+
 type Stream interface {
 	Recv() (string, error) // returns text chunk or io.EOF
 	Close() error
+}
+
+type LLM interface {
+	Chat(ctx context.Context, systemPrompt string, history []Message, providerOverride string) (Stream, error)
+	FIM(ctx context.Context, prefix, suffix, providerOverride string) (string, error)
+	Task(ctx context.Context, systemPrompt string, history []Message, providerOverride string) (*AgentResponse, error)
+	Embed(ctx context.Context, text, providerOverride string) ([]float32, error)
 }

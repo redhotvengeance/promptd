@@ -94,8 +94,8 @@ func (m *Manager) Task(ctx context.Context, systemPrompt string, history []promp
 	return provider.Task(ctx, systemPrompt, history, model)
 }
 
-func (m *Manager) Embed(ctx context.Context, text string) ([]float32, error) {
-	provider, model, err := m.resolve("", m.defaults.Embed)
+func (m *Manager) Embed(ctx context.Context, text, providerOverride string) ([]float32, error) {
+	provider, model, err := m.resolve(providerOverride, m.defaults.Embed)
 	if err != nil {
 		return nil, err
 	}

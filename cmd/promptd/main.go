@@ -7,6 +7,7 @@ import (
 	"path/filepath"
 
 	"github.com/redhotvengeance/promptd/internal/config"
+	"github.com/redhotvengeance/promptd/internal/generation"
 	"github.com/redhotvengeance/promptd/internal/ipc/router"
 	"github.com/redhotvengeance/promptd/internal/ipc/server"
 	"github.com/redhotvengeance/promptd/internal/libsql"
@@ -51,7 +52,9 @@ func main() {
 		os.Exit(1)
 	}
 
-	llm.NewManager(&config)
+	llmManager := llm.NewManager(&config)
+
+	generation.NewService(llmManager, datastore)
 
 	router := router.NewRouter()
 
