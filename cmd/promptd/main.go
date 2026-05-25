@@ -9,6 +9,7 @@ import (
 	"github.com/redhotvengeance/promptd/internal/config"
 	"github.com/redhotvengeance/promptd/internal/ipc/router"
 	"github.com/redhotvengeance/promptd/internal/ipc/server"
+	"github.com/redhotvengeance/promptd/internal/libsql"
 	"github.com/redhotvengeance/promptd/internal/llm"
 )
 
@@ -41,6 +42,12 @@ func main() {
 	config, err := config.LoadConfig()
 	if err != nil {
 		fmt.Fprintln(os.Stderr, err)
+		os.Exit(1)
+	}
+
+	datastore := libsql.NewDatastore()
+	if err := datastore.Open(); err != nil {
+		fmt.Fprintf(os.Stderr, "failed to open db: %s", err)
 		os.Exit(1)
 	}
 

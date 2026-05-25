@@ -15,6 +15,8 @@ type Config struct {
 	Providers map[string]Provider
 }
 
+type Datastore interface {}
+
 type Defaults struct {
 	Chat  string
 	FIM   string

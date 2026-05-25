@@ -18,6 +18,8 @@
           buildInputs = with pkgs; [
             go
             gnumake
+            sqlc
+            atlas
           ];
 
           shellHook = ''

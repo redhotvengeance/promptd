@@ -36,3 +36,8 @@ go.work.sum
 
 # project binaries
 bin/*
+
+# database stuff
+local.db
+internal/libsql/data/sql/*
+!internal/libsql/data/sql/.gitkeep
