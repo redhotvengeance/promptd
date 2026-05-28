@@ -2,6 +2,7 @@ package generation
 
 import (
 	"context"
+	"fmt"
 	"log"
 	"strings"
 
@@ -24,6 +25,17 @@ func NewService(llm promptd.LLM, store promptd.Datastore) *Service {
 type ChatParams struct {
 	Prompt           string              `json:"prompt"`
 	ThreadID         string              `json:"threadID,omitempty"`
+	Context          *promptd.JITContext `json:"context,omitempty"`
+	ProviderOverride string              `json:"providerOverride,omitempty"`
+}
+
+type EditParams struct {
+	Instruction      string              `json:"instruction"`
+	StartLine        int                 `json:"startLine"`
+	EndLine          int                 `json:"endLine"`
+	Selection        string              `json:"selection"`
+	Prefix           string              `json:"prefix"`
+	Suffix           string              `json:"suffix"`
 	Context          *promptd.JITContext `json:"context,omitempty"`
 	ProviderOverride string              `json:"providerOverride,omitempty"`
 }
@@ -89,6 +101,47 @@ func (s *Service) HandleChat(ctx context.Context, params ChatParams) (<-chan str
 			Content:  builder.String(),
 		}); err != nil {
 			log.Printf("CRITICAL: Failed to save assistant message to DB: %v", err)
+		}
+	}()
+
+	return chunks, nil
+}
+
+func (s *Service) HandleEdit(ctx context.Context, params EditParams) (<-chan string, error) {
+	var builder strings.Builder
+
+	builder.WriteString("You are a surgical code refactoring engine. Your goal is to rewrite the requested section of code based entirely on the user's instructions.\n")
+	builder.WriteString("CRITICAL: Output ONLY the raw code replacement. Do not include markdown code fences (```), conversational commentary, or explanations. Start outputting code immediately.\n\n")
+	builder.WriteString("<context_sandwich>\n")
+
+	if params.Context != nil && params.Context.ActiveFilePath != "" {
+		fmt.Fprintf(&builder, "File: %s\n\n", params.Context.ActiveFilePath)
+	}
+
+	fmt.Fprintf(&builder, "Prefix:\n%s\n\n", params.Prefix)
+	fmt.Fprintf(&builder, "Target Selection (Lines %d-%d):\n%s\n\n", params.StartLine, params.EndLine, params.Selection)
+	fmt.Fprintf(&builder, "Suffix:\n%s\n\n", params.Suffix)
+	builder.WriteString("<context_sandwich>\n")
+
+	history := []promptd.Message{{Role: promptd.RoleUser, Content: params.Instruction}}
+
+	stream, err := s.llm.Chat(ctx, builder.String(), history, params.ProviderOverride)
+	if err != nil {
+		return nil, err
+	}
+
+	chunks := make(chan string)
+	go func() {
+		defer close(chunks)
+		defer stream.Close()
+
+		for {
+			chunk, err := stream.Recv()
+			if err != nil {
+				break
+			}
+
+			chunks <- chunk
 		}
 	}()
 

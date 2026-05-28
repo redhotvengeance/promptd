@@ -90,6 +90,56 @@ func (r *Router) handleChat(ctx context.Context, req ipc.Request, client *ipc.Cl
 }
 
 func (r *Router) handleEdit(ctx context.Context, req ipc.Request, client *ipc.Client) {
+	var params generation.EditParams
+	if err := json.Unmarshal(req.Params, &params); err != nil {
+		r.sendError(client, req.ID, -32602, "Invalid params format")
+
+		return
+	}
+
+	streamChan, err := r.genService.HandleEdit(ctx, params)
+	if err != nil {
+		r.sendError(client, req.ID, -32000, err.Error())
+
+		return
+	}
+
+	if err = client.Send(ipc.Notification{
+		JSONRPC: "2.0",
+		Method:  "stream/begin",
+		Params: map[string]any{
+			"id": req.ID,
+		},
+	}); err != nil {
+		log.Printf("Failed to begin stream to client: %v", err)
+
+		return
+	}
+
+	for chunk := range streamChan {
+		if err := client.Send(ipc.Notification{
+			JSONRPC: "2.0",
+			Method:  "stream/chunk",
+			Params: map[string]any{
+				"id":   req.ID,
+				"text": chunk,
+			},
+		}); err != nil {
+			log.Printf("Failed to stream chunk to client: %v", err)
+
+			return
+		}
+	}
+
+	if err = client.Send(ipc.Response{
+		JSONRPC: "2.0",
+		ID:      req.ID,
+		Result:  nil,
+	}); err != nil {
+		log.Printf("Failed to finish stream to client: %v", err)
+
+		return
+	}
 }
 
 func (r *Router) handleFIM(ctx context.Context, req ipc.Request, client *ipc.Client) {
