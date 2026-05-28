@@ -16,7 +16,13 @@ type Request struct {
 
 type Response struct {
 	JSONRPC string `json:"jsonrpc"`
-	Result  any    `json:"result,omitempty"`
+	Result  any    `json:"result"`
 	Error   *Error `json:"error,omitempty"`
 	ID      string `json:"id"`
+}
+
+type Notification struct {
+	JSONRPC string `json:"jsonrpc"`
+	Method  string `json:"method"`
+	Params  any    `json:"params"`
 }

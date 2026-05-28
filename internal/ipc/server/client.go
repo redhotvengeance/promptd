@@ -8,18 +8,18 @@ import (
 
 type Client struct {
 	conn net.Conn
-	mu sync.Mutex
+	mu   sync.Mutex
 }
 
 func NewClient(conn net.Conn) *Client {
 	return &Client{conn: conn}
 }
 
-func (c *Client) Send(resp Response) error {
+func (c *Client) Send(payload any) error {
 	c.mu.Lock()
 	defer c.mu.Unlock()
 
-	data, err := json.Marshal(resp)
+	data, err := json.Marshal(payload)
 	if err != nil {
 		return err
 	}
