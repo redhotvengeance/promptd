@@ -45,6 +45,11 @@ type ToolCall struct {
 	Args string
 }
 
+type TaskUpdate struct {
+	Status string
+	Text   string
+}
+
 type JITContext struct {
 	ActiveFilePath    string
 	ActiveFileContent string

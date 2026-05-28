@@ -46,6 +46,15 @@ type FIMParams struct {
 	Filepath string `json:"filepath,omitempty"`
 }
 
+type TaskParams struct {
+	Instruction      string              `json:"instruction"`
+	ThreadID         string              `json:"threadID,omitempty"`
+	Context          *promptd.JITContext `json:"context,omitempty"`
+	ProviderOverride string              `json:"providerOverride,omitempty"`
+
+	ExecuteTool func(ctx context.Context, name, args string) (string, error) `json:"-"`
+}
+
 func (s *Service) HandleChat(ctx context.Context, params ChatParams) (<-chan string, error) {
 	messages := s.store.Messages()
 	threads := s.store.Threads()
@@ -156,6 +165,72 @@ func (s *Service) HandleEdit(ctx context.Context, params EditParams) (<-chan str
 
 func (s *Service) HandleFIM(ctx context.Context, params FIMParams) (string, error) {
 	return s.llm.FIM(ctx, params.Prefix, params.Suffix, "")
+}
+
+func (s *Service) HandleTask(ctx context.Context, params TaskParams) (<-chan promptd.TaskUpdate, error) {
+	systemPrompt := "\n\nYou have access to terminal and file editing tools. Execute them precisely when needed."
+
+	history := []promptd.Message{
+		{
+			Role:    promptd.RoleUser,
+			Content: params.Instruction,
+		},
+	}
+
+	updates := make(chan promptd.TaskUpdate)
+
+	go func() {
+		defer close(updates)
+
+		for {
+			updates <- promptd.TaskUpdate{
+				Status: "Thinking...",
+			}
+
+			response, err := s.llm.Task(ctx, systemPrompt, history, params.ProviderOverride)
+			if err != nil {
+				updates <- promptd.TaskUpdate{
+					Status: fmt.Sprintf("Error: %v", err),
+				}
+
+				return
+			}
+
+			if len(response.ToolCalls) == 0 {
+				updates <- promptd.TaskUpdate{
+					Text: response.Text,
+				}
+
+				return
+			}
+
+			for _, tool := range response.ToolCalls {
+				updates <- promptd.TaskUpdate{
+					Status: fmt.Sprintf("Executing: %s", tool.Name),
+				}
+
+				var toolResult string
+
+				if params.ExecuteTool != nil {
+					res, err := params.ExecuteTool(ctx, tool.Name, tool.Args)
+					if err != nil {
+						toolResult = fmt.Sprintf("Tool execution failed: %v", err)
+					} else {
+						toolResult = res
+					}
+				} else {
+					toolResult = "System Error: No tool executor was provided to the daemon."
+				}
+
+				history = append(history, promptd.Message{
+					Role:    promptd.Role("tool"),
+					Content: fmt.Sprintf("Result of %s:\n%s", tool.Name, toolResult),
+				})
+			}
+		}
+	}()
+
+	return updates, nil
 }
 
 func generateID() string {
