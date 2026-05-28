@@ -7,10 +7,3 @@ sql:
       go:
         package: "sql"
         out: "internal/libsql/data/sql"
-        emit_json_tags: true
-        emit_prepared_queries: false
-        overrides:
-          - column: "document_chunks.embedding"
-            go_type:
-              type: "byte"
-              slice: true

@@ -14,6 +14,7 @@ type Datastore struct {
 
 	messageStore promptd.MessageStore
 	threadStore promptd.ThreadStore
+	workspaceStore promptd.WorkspaceStore
 }
 
 func NewDatastore() *Datastore {
@@ -28,6 +29,7 @@ func (d *Datastore) Open() error {
 
 	d.messageStore = NewMessageStore(d.Queries)
 	d.threadStore = NewThreadStore(d.Queries)
+	d.workspaceStore = NewWorkspaceStore(d.DB, d.Queries)
 
 	return err
 }
@@ -38,6 +40,10 @@ func (d *Datastore) Messages() promptd.MessageStore {
 
 func (d *Datastore) Threads() promptd.ThreadStore {
 	return d.threadStore
+}
+
+func (d *Datastore) Workspaces() promptd.WorkspaceStore {
+	return d.workspaceStore
 }
 
 func (d *Datastore) Close() error {

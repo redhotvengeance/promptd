@@ -18,6 +18,7 @@ type Config struct {
 type Datastore interface {
 	Messages() MessageStore
 	Threads() ThreadStore
+	Workspaces() WorkspaceStore
 }
 
 type Defaults struct {
@@ -48,13 +49,6 @@ type ToolCall struct {
 type TaskUpdate struct {
 	Status string
 	Text   string
-}
-
-type JITContext struct {
-	ActiveFilePath    string
-	ActiveFileContent string
-	CursorLine        int
-	OpenBuffers       []string
 }
 
 type Stream interface {
