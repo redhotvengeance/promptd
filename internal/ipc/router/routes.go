@@ -24,13 +24,13 @@ func (r *Router) Handle(req ipc.Request, client *ipc.Client) {
 	ctx := context.Background()
 
 	switch req.Method {
-	case "text.chat":
+	case "text/chat":
 		r.handleChat(ctx, req, client)
-	case "text.edit":
+	case "text/edit":
 		r.handleEdit(ctx, req, client)
-	case "text.fim":
+	case "text/fim":
 		r.handleFIM(ctx, req, client)
-	case "text.task":
+	case "text/task":
 		r.handleTask(ctx, req, client)
 	default:
 		log.Printf("Unknown method: %s", req.Method)
