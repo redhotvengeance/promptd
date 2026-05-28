@@ -143,6 +143,27 @@ func (r *Router) handleEdit(ctx context.Context, req ipc.Request, client *ipc.Cl
 }
 
 func (r *Router) handleFIM(ctx context.Context, req ipc.Request, client *ipc.Client) {
+	var params generation.FIMParams
+	if err := json.Unmarshal(req.Params, &params); err != nil {
+		r.sendError(client, req.ID, -32602, "Invalid params format")
+
+		return
+	}
+
+	completion, err := r.genService.HandleFIM(ctx, params)
+	if err != nil {
+		r.sendError(client, req.ID, -32000, err.Error())
+
+		return
+	}
+
+	_ = client.Send(ipc.Response{
+		JSONRPC: "2.0",
+		ID:      req.ID,
+		Result: map[string]string{
+			"completion": completion,
+		},
+	})
 }
 
 func (r *Router) handleTask(ctx context.Context, req ipc.Request, client *ipc.Client) {

@@ -40,6 +40,12 @@ type EditParams struct {
 	ProviderOverride string              `json:"providerOverride,omitempty"`
 }
 
+type FIMParams struct {
+	Prefix   string `json:"prefix"`
+	Suffix   string `json:"suffix"`
+	Filepath string `json:"filepath,omitempty"`
+}
+
 func (s *Service) HandleChat(ctx context.Context, params ChatParams) (<-chan string, error) {
 	messages := s.store.Messages()
 	threads := s.store.Threads()
@@ -146,6 +152,10 @@ func (s *Service) HandleEdit(ctx context.Context, params EditParams) (<-chan str
 	}()
 
 	return chunks, nil
+}
+
+func (s *Service) HandleFIM(ctx context.Context, params FIMParams) (string, error) {
+	return s.llm.FIM(ctx, params.Prefix, params.Suffix, "")
 }
 
 func generateID() string {
