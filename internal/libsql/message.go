@@ -7,17 +7,17 @@ import (
 	"github.com/redhotvengeance/promptd/internal/promptd"
 )
 
-type MessageService struct {
+type MessageStore struct {
 	queries *sql.Queries
 }
 
-func NewMessageService(queries *sql.Queries) *MessageService {
-	return &MessageService{
+func NewMessageStore(queries *sql.Queries) *MessageStore {
+	return &MessageStore{
 		queries: queries,
 	}
 }
 
-func (m *MessageService) modelToStruct(model sql.Message) promptd.Message {
+func (m *MessageStore) modelToStruct(model sql.Message) promptd.Message {
 	return promptd.Message{
 		ID: model.ID,
 		ThreadID: model.ThreadID,
@@ -27,7 +27,7 @@ func (m *MessageService) modelToStruct(model sql.Message) promptd.Message {
 	}
 }
 
-func (m *MessageService) ListMessages(ctx context.Context, threadID string) ([]promptd.Message, error) {
+func (m *MessageStore) ListMessages(ctx context.Context, threadID string) ([]promptd.Message, error) {
 	dbMessages, err := m.queries.ListMessages(ctx, threadID)
 	if err != nil {
 		return nil, err
@@ -41,7 +41,7 @@ func (m *MessageService) ListMessages(ctx context.Context, threadID string) ([]p
 	return messages, nil
 }
 
-func (m *MessageService) CreateMessage(ctx context.Context, message promptd.Message) error {
+func (m *MessageStore) CreateMessage(ctx context.Context, message promptd.Message) error {
 	params := sql.CreateMessageParams{
 		ID: message.ID,
 		ThreadID: message.ThreadID,
@@ -56,7 +56,7 @@ func (m *MessageService) CreateMessage(ctx context.Context, message promptd.Mess
 	return nil
 }
 
-func (m *MessageService) DeleteMessage(ctx context.Context, id string) error {
+func (m *MessageStore) DeleteMessage(ctx context.Context, id string) error {
 	if err := m.queries.DeleteMessage(ctx, id); err != nil {
 		return err
 	}

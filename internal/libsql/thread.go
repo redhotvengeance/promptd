@@ -7,17 +7,17 @@ import (
 	"github.com/redhotvengeance/promptd/internal/promptd"
 )
 
-type ThreadService struct {
+type ThreadStore struct {
 	queries *sql.Queries
 }
 
-func NewThreadService(queries *sql.Queries) *ThreadService {
-	return &ThreadService{
+func NewThreadStore(queries *sql.Queries) *ThreadStore {
+	return &ThreadStore{
 		queries: queries,
 	}
 }
 
-func (t *ThreadService) modelToStruct(model sql.Thread) promptd.Thread {
+func (t *ThreadStore) modelToStruct(model sql.Thread) promptd.Thread {
 	return promptd.Thread{
 		ID: model.ID,
 		CreatedAt: model.CreatedAt,
@@ -25,7 +25,7 @@ func (t *ThreadService) modelToStruct(model sql.Thread) promptd.Thread {
 	}
 }
 
-func (t *ThreadService) GetThread(ctx context.Context, id string) (*promptd.Thread, error) {
+func (t *ThreadStore) GetThread(ctx context.Context, id string) (*promptd.Thread, error) {
 	dbThread, err := t.queries.GetThread(ctx, id)
 	if err != nil {
 		return nil, err
@@ -36,7 +36,7 @@ func (t *ThreadService) GetThread(ctx context.Context, id string) (*promptd.Thre
 	return &thread, nil
 }
 
-func (t *ThreadService) ListThreads(ctx context.Context) ([]promptd.Thread, error) {
+func (t *ThreadStore) ListThreads(ctx context.Context) ([]promptd.Thread, error) {
 	dbThreads, err := t.queries.ListThreads(ctx)
 	if err != nil {
 		return nil, err
@@ -50,7 +50,7 @@ func (t *ThreadService) ListThreads(ctx context.Context) ([]promptd.Thread, erro
 	return threads, nil
 }
 
-func (t *ThreadService) CreateThread(ctx context.Context, id string) error {
+func (t *ThreadStore) CreateThread(ctx context.Context, id string) error {
 	if err := t.queries.CreateThread(ctx, id); err != nil {
 		return err
 	}
@@ -58,7 +58,7 @@ func (t *ThreadService) CreateThread(ctx context.Context, id string) error {
 	return nil
 }
 
-func (t *ThreadService) DeleteThread(ctx context.Context, id string) error {
+func (t *ThreadStore) DeleteThread(ctx context.Context, id string) error {
 	if err := t.queries.DeleteThread(ctx, id); err != nil {
 		return err
 	}

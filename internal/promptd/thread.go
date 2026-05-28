@@ -11,7 +11,7 @@ type Thread struct {
 	UpdatedAt time.Time
 }
 
-type ThreadService interface {
+type ThreadStore interface {
 	GetThread(ctx context.Context, id string) (*Thread, error)
 	ListThreads(ctx context.Context) ([]Thread, error)
 	CreateThread(ctx context.Context, id string) error

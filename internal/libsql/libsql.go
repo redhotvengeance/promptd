@@ -12,8 +12,8 @@ type Datastore struct {
 	DB      *sql.DB
 	Queries *queries.Queries
 
-	messageService promptd.MessageService
-	threadService promptd.ThreadService
+	messageStore promptd.MessageStore
+	threadStore promptd.ThreadStore
 }
 
 func NewDatastore() *Datastore {
@@ -26,18 +26,18 @@ func (d *Datastore) Open() error {
 	d.DB = libsql
 	d.Queries = queries.New(libsql)
 
-	d.messageService = NewMessageService(d.Queries)
-	d.threadService = NewThreadService(d.Queries)
+	d.messageStore = NewMessageStore(d.Queries)
+	d.threadStore = NewThreadStore(d.Queries)
 
 	return err
 }
 
-func (d *Datastore) Messages() promptd.MessageService {
-	return d.messageService
+func (d *Datastore) Messages() promptd.MessageStore {
+	return d.messageStore
 }
 
-func (d *Datastore) Threads() promptd.ThreadService {
-	return d.threadService
+func (d *Datastore) Threads() promptd.ThreadStore {
+	return d.threadStore
 }
 
 func (d *Datastore) Close() error {

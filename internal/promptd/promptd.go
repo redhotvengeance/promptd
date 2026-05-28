@@ -16,8 +16,8 @@ type Config struct {
 }
 
 type Datastore interface {
-	Messages() MessageService
-	Threads() ThreadService
+	Messages() MessageStore
+	Threads() ThreadStore
 }
 
 type Defaults struct {

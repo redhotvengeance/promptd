@@ -13,7 +13,7 @@ type Message struct {
 	CreatedAt time.Time
 }
 
-type MessageService interface {
+type MessageStore interface {
 	ListMessages(ctx context.Context, threadID string) ([]Message, error)
 	CreateMessage(ctx context.Context, message Message) error
 	DeleteMessage(ctx context.Context, id string) error
