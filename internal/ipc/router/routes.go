@@ -8,15 +8,37 @@ import (
 
 	"github.com/redhotvengeance/promptd/internal/generation"
 	"github.com/redhotvengeance/promptd/internal/ipc/server"
+	"github.com/redhotvengeance/promptd/internal/promptd"
 )
 
 type Router struct {
 	genService *generation.Service
+	datastore  promptd.Datastore
+	workspace  promptd.WorkspaceService
 }
 
-func NewRouter(genService *generation.Service) *Router {
+type WorkspaceParams struct {
+	WorkspaceRoot string `json:"workspaceRoot"`
+}
+
+type ThreadParams struct {
+	ThreadID string `json:"threadID"`
+}
+
+type ThreadListParams struct {
+	Limit string `json:"limit"`
+	Offet string `json:"offset"`
+}
+
+type SystemCancelParams struct {
+	RequestID string `json:"requestID"`
+}
+
+func NewRouter(genService *generation.Service, datastore promptd.Datastore, workspaceService promptd.WorkspaceService) *Router {
 	return &Router{
 		genService: genService,
+		datastore:  datastore,
+		workspace:  workspaceService,
 	}
 }
 
@@ -32,8 +54,25 @@ func (r *Router) Handle(req ipc.Request, client *ipc.Client) {
 		r.handleFIM(ctx, req, client)
 	case "text/task":
 		r.handleTask(ctx, req, client)
+	case "workspace/register":
+		r.handleWorkspaceRegister(ctx, req, client)
+	case "workspace/unregister":
+		r.handleWorkspaceUnregister(ctx, req, client)
+	case "thread/get":
+		r.handleThreadGet(ctx, req, client)
+	case "thread/list":
+		r.handleThreadList(ctx, req, client)
+	case "thread/delete":
+		r.handleThreadDelete(ctx, req, client)
+	case "system/status":
+		r.handleSystemStatus(req, client)
+	case "system/cancel":
+		r.handleSystemCancel(req, client)
+	case "provider/list":
+		r.handleProviderList(req, client)
 	default:
 		log.Printf("Unknown method: %s", req.Method)
+		r.sendError(client, req.ID, -32601, "Method not found")
 	}
 }
 
@@ -233,6 +272,147 @@ func (r *Router) handleTask(ctx context.Context, req ipc.Request, client *ipc.Cl
 		JSONRPC: "2.0",
 		ID:      req.ID,
 		Result:  nil,
+	})
+}
+
+func (r *Router) handleWorkspaceRegister(ctx context.Context, req ipc.Request, client *ipc.Client) {
+	var params WorkspaceParams
+	if err := json.Unmarshal(req.Params, &params); err != nil {
+		r.sendError(client, req.ID, -32602, "Invalid params format")
+
+		return
+	}
+
+	if err := r.workspace.Register(ctx, params.WorkspaceRoot); err != nil {
+		r.sendError(client, req.ID, -32000, err.Error())
+
+		return
+	}
+
+	_ = client.Send(ipc.Response{
+		JSONRPC: "2.0",
+		ID:      req.ID,
+		Result: map[string]any{
+			"status": "indexing",
+		},
+	})
+}
+
+func (r *Router) handleWorkspaceUnregister(ctx context.Context, req ipc.Request, client *ipc.Client) {
+	var params WorkspaceParams
+	if err := json.Unmarshal(req.Params, &params); err != nil {
+		r.sendError(client, req.ID, -32602, "Invalid params format")
+
+		return
+	}
+
+	if err := r.workspace.Unregister(ctx, params.WorkspaceRoot); err != nil {
+		r.sendError(client, req.ID, -32000, err.Error())
+
+		return
+	}
+
+	_ = client.Send(ipc.Response{
+		JSONRPC: "2.0",
+		ID:      req.ID,
+		Result: map[string]any{
+			"success": true,
+		},
+	})
+}
+
+func (r *Router) handleThreadGet(ctx context.Context, req ipc.Request, client *ipc.Client) {
+	var params ThreadParams
+	if err := json.Unmarshal(req.Params, &params); err != nil {
+		r.sendError(client, req.ID, -32602, "Invalid params format")
+
+		return
+	}
+
+	messages, err := r.datastore.Messages().ListMessages(ctx, params.ThreadID)
+	if err != nil {
+		r.sendError(client, req.ID, -32000, err.Error())
+
+		return
+	}
+
+	_ = client.Send(ipc.Response{
+		JSONRPC: "2.0",
+		ID:      req.ID,
+		Result: map[string]any{
+			"messages": messages,
+		},
+	})
+}
+
+func (r *Router) handleThreadList(ctx context.Context, req ipc.Request, client *ipc.Client) {
+	threads, err := r.datastore.Threads().ListThreads(ctx)
+	if err != nil {
+		r.sendError(client, req.ID, -32000, err.Error())
+	}
+
+	_ = client.Send(ipc.Response{
+		JSONRPC: "2.0",
+		ID:      req.ID,
+		Result: map[string]any{
+			"threads": threads,
+		},
+	})
+}
+
+func (r *Router) handleThreadDelete(ctx context.Context, req ipc.Request, client *ipc.Client) {
+	var params ThreadParams
+	if err := json.Unmarshal(req.Params, &params); err != nil {
+		r.sendError(client, req.ID, -32602, "Invalid params format")
+
+		return
+	}
+
+	if err := r.datastore.Threads().DeleteThread(ctx, params.ThreadID); err != nil {
+		r.sendError(client, req.ID, -32000, err.Error())
+
+		return
+	}
+
+	_ = client.Send(ipc.Response{
+		JSONRPC: "2.0",
+		ID:      req.ID,
+		Result: map[string]any{
+			"success": true,
+		},
+	})
+}
+
+func (r *Router) handleSystemStatus(req ipc.Request, client *ipc.Client) {
+	_ = client.Send(ipc.Response{
+		JSONRPC: "2.0",
+		ID:      req.ID,
+		Result: map[string]any{
+			"status":          "online",
+			"activeProviders": []string{}, // TODO: Fetch from config
+		},
+	})
+}
+
+func (r *Router) handleSystemCancel(req ipc.Request, client *ipc.Client) {
+	// TODO: Implement context cancellation
+
+	_ = client.Send(ipc.Response{
+		JSONRPC: "2.0",
+		ID:      req.ID,
+		Result: map[string]any{
+			"success": true,
+		},
+	})
+}
+
+func (r *Router) handleProviderList(req ipc.Request, client *ipc.Client) {
+	_ = client.Send(ipc.Response{
+		JSONRPC: "2.0",
+		ID:      req.ID,
+		Result: map[string]any{
+			"providers": []string{}, // TODO: Fetch from config
+		},
 	})
 }
 

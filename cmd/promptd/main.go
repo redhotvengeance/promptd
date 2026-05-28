@@ -59,7 +59,7 @@ func main() {
 
 	genService := generation.NewService(llmManager, datastore, workspaceService)
 
-	router := router.NewRouter(genService)
+	router := router.NewRouter(genService, datastore, workspaceService)
 
 	server := ipc.NewServer(filepath.Join(appDir, socketName), router.Handle)
 	if err := server.Start(); err != nil {
