@@ -54,9 +54,9 @@ func main() {
 
 	llmManager := llm.NewManager(&config)
 
-	generation.NewService(llmManager, datastore)
+	genService := generation.NewService(llmManager, datastore)
 
-	router := router.NewRouter()
+	router := router.NewRouter(genService)
 
 	server := ipc.NewServer(filepath.Join(appDir, socketName), router.Handle)
 	if err := server.Start(); err != nil {
