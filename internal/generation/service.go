@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"log"
+	"path/filepath"
 	"strings"
 
 	"github.com/google/uuid"
@@ -11,14 +12,16 @@ import (
 )
 
 type Service struct {
-	llm   promptd.LLM
-	store promptd.Datastore
+	llm       promptd.LLM
+	store     promptd.Datastore
+	workspace promptd.WorkspaceService
 }
 
-func NewService(llm promptd.LLM, store promptd.Datastore) *Service {
+func NewService(llm promptd.LLM, store promptd.Datastore, workspace promptd.WorkspaceService) *Service {
 	return &Service{
-		llm:   llm,
-		store: store,
+		llm:       llm,
+		store:     store,
+		workspace: workspace,
 	}
 }
 
@@ -84,6 +87,20 @@ func (s *Service) HandleChat(ctx context.Context, params ChatParams) (<-chan str
 	history = append(history, userMsg)
 
 	systemPrompt := "You are a helpful coding assistant."
+
+	var workspacePath string
+	if params.Context != nil && params.Context.ActiveFilePath != "" {
+		workspacePath = filepath.Dir(params.Context.ActiveFilePath)
+	}
+
+	if workspacePath != "" {
+		ragContext, err := s.workspace.BuildContext(ctx, params.Prompt, params.Context, workspacePath, "")
+		if err != nil {
+			log.Printf("Warning: failed to build RAG context: %v", err)
+		} else {
+			systemPrompt = ragContext
+		}
+	}
 
 	stream, err := s.llm.Chat(ctx, systemPrompt, history, params.ProviderOverride)
 	if err != nil {
@@ -168,7 +185,18 @@ func (s *Service) HandleFIM(ctx context.Context, params FIMParams) (string, erro
 }
 
 func (s *Service) HandleTask(ctx context.Context, params TaskParams) (<-chan promptd.TaskUpdate, error) {
-	systemPrompt := "\n\nYou have access to terminal and file editing tools. Execute them precisely when needed."
+	var workspacePath string
+	if params.Context != nil && params.Context.ActiveFilePath != "" {
+		workspacePath = filepath.Dir(params.Context.ActiveFilePath)
+	}
+
+	systemPrompt, err := s.workspace.BuildContext(ctx, params.Instruction, params.Context, workspacePath, params.ProviderOverride)
+	if err != nil {
+		log.Printf("Warning: failed to build RAG context: %v", err)
+		systemPrompt = "You are an advanced agentic coding assistant."
+	}
+
+	systemPrompt += "\n\nYou have access to terminal and file editing tools. Execute them precisely when needed."
 
 	history := []promptd.Message{
 		{

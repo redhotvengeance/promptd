@@ -55,9 +55,9 @@ func main() {
 
 	llmManager := llm.NewManager(&config)
 
-	workspace.NewService(llmManager, datastore)
+	workspaceService := workspace.NewService(llmManager, datastore)
 
-	genService := generation.NewService(llmManager, datastore)
+	genService := generation.NewService(llmManager, datastore, workspaceService)
 
 	router := router.NewRouter(genService)
 
