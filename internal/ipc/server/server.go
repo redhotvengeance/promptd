@@ -21,7 +21,7 @@ type Server struct {
 func NewServer(path string, handler Handler) *Server {
 	return &Server{
 		socketPath: path,
-		handler: handler,
+		handler:    handler,
 	}
 }
 
@@ -74,6 +74,28 @@ func (s *Server) handleConnection(conn net.Conn) {
 	for scanner.Scan() {
 		line := scanner.Bytes()
 
+		var raw map[string]any
+		if err := json.Unmarshal(line, &raw); err != nil {
+			client.Send(Response{
+				JSONRPC: "2.0",
+				Error: &Error{
+					Code:    -32700,
+					Message: "Parse error",
+				},
+			})
+
+			continue
+		}
+
+		if raw["method"] == nil && raw["id"] != nil {
+			var resp Response
+			if err := json.Unmarshal(line, &resp); err == nil {
+				client.resolve(resp)
+			}
+
+			continue
+		}
+
 		var req Request
 		if err := json.Unmarshal(line, &req); err != nil {
 			client.Send(Response{
@@ -102,7 +124,7 @@ func (s *Server) handleConnection(conn net.Conn) {
 		if req.Method == "" {
 			client.Send(Response{
 				JSONRPC: "2.0",
-				ID: req.ID,
+				ID:      req.ID,
 				Error: &Error{
 					Code:    -32600,
 					Message: "Invalid request: Missing `method`",
