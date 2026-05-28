@@ -17,6 +17,12 @@ type JITContext struct {
 	OpenBuffers       []string
 }
 
+type WorkspaceService interface {
+	Register(ctx context.Context, workspacePath string) error
+	Unregister(ctx context.Context, workspacePath string) error
+	BuildContext(ctx context.Context, query string, jit *JITContext, workspacePath, embedModel string) (string, error)
+}
+
 type WorkspaceStore interface {
 	DeleteWorkspace(ctx context.Context, workspacePath string) error
 	InsertChunks(ctx context.Context, chunks []Chunk) error

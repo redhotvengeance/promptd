@@ -12,6 +12,7 @@ import (
 	"github.com/redhotvengeance/promptd/internal/ipc/server"
 	"github.com/redhotvengeance/promptd/internal/libsql"
 	"github.com/redhotvengeance/promptd/internal/llm"
+	"github.com/redhotvengeance/promptd/internal/workspace"
 )
 
 const (
@@ -53,6 +54,8 @@ func main() {
 	}
 
 	llmManager := llm.NewManager(&config)
+
+	workspace.NewService(llmManager, datastore)
 
 	genService := generation.NewService(llmManager, datastore)
 
